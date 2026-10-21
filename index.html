@@ -1,0 +1,326 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>RecuperaOrçamentos</title>
+<style>
+:root{--bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#667085;--blue:#315efb;--green:#138653;--red:#d92d20;--line:#e1e7f0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px Arial,sans-serif}
+header{background:#101827;color:white;padding:23px 17px}
+header h1{margin:0 0 8px;font-size:25px}
+header p{margin:0;color:#c4cee0;font-size:13px}
+main{max-width:1050px;margin:auto;padding:15px}
+nav{display:flex;gap:8px;overflow-x:auto;margin-bottom:16px}
+button,.btn{font:inherit;font-weight:bold;border:0;border-radius:9px;padding:12px 14px;cursor:pointer;text-decoration:none;display:inline-block;text-align:center}
+nav button{background:white;border:1px solid var(--line);color:var(--ink);white-space:nowrap}
+nav button.active,.primary{background:var(--blue);color:white}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;margin-bottom:15px}
+h2{font-size:19px;margin:0 0 15px}
+h3{font-size:16px;margin:0 0 8px}
+p{line-height:1.5}
+.muted{color:var(--muted);font-size:13px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:15px}
+.stat{background:white;border:1px solid var(--line);border-radius:12px;padding:14px;min-width:0}
+.stat small{display:block;color:var(--muted);margin-bottom:9px}
+.stat strong{font-size:20px;overflow-wrap:anywhere}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+label{display:block;font-weight:bold;font-size:13px;margin-bottom:6px}
+input,select,textarea{width:100%;padding:12px;border:1px solid #cfd7e4;border-radius:9px;background:white;color:var(--ink);font:inherit;margin-bottom:13px}
+textarea{min-height:75px;resize:vertical}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.secondary{background:#edf1f8;color:#27354d}
+.success{background:#e5f7ed;color:#117747}
+.danger{background:#fff0ee;color:var(--red)}
+.hidden{display:none!important}
+.quote{border:1px solid var(--line);border-radius:11px;padding:14px;margin-top:10px;background:white}
+.quote-top{display:flex;justify-content:space-between;gap:8px}
+.quote p{margin:7px 0;color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.amount{font-size:21px;font-weight:bold;margin:12px 0}
+.tag{display:inline-block;border-radius:20px;background:#edf1f8;padding:5px 8px;font-size:12px;height:max-content}
+.tag.Aprovado,.tag.Recuperado{background:#e5f7ed;color:#117747}
+.tag.Pendente{background:#fff3d8;color:#946200}
+.tag.Perdido{background:#fff0ee;color:#b42318}
+.plan-price{font-size:26px;font-weight:bold;margin:10px 0}
+.plan{display:flex;flex-direction:column;align-items:flex-start}
+.plan .btn{width:100%;margin-top:12px}
+.pay-note{font-size:12px;color:var(--muted);margin-top:10px}
+.empty{text-align:center;padding:22px;color:var(--muted)}
+footer{text-align:center;padding:22px;color:var(--muted);font-size:12px}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #93b4ff;outline-offset:2px}
+@media(max-width:650px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.grid{grid-template-columns:1fr}main{padding:10px}.card{padding:14px}.quote-top{align-items:flex-start}}
+</style>
+</head>
+<body>
+<header>
+  <h1>RecuperaOrçamentos</h1>
+  <p>Organize orçamentos, acompanhe clientes e recupere oportunidades.</p>
+</header>
+
+<main>
+<nav aria-label="Menu principal">
+  <button class="active" data-page="inicio">Painel</button>
+  <button data-page="orcamentos">Orçamentos</button>
+  <button data-page="novo">+ Novo orçamento</button>
+  <button data-page="planos">Assinaturas</button>
+</nav>
+
+<section id="inicio" class="page">
+  <div class="stats">
+    <div class="stat"><small>Total de orçamentos</small><strong id="total">0</strong></div>
+    <div class="stat"><small>Pendentes</small><strong id="pendentes">0</strong></div>
+    <div class="stat"><small>Aprovados</small><strong id="aprovados">0</strong></div>
+    <div class="stat"><small>Valor aprovado</small><strong id="valor">R$ 0,00</strong></div>
+  </div>
+  <div class="card">
+    <h2>Seu painel de controle</h2>
+    <p class="muted">Cadastre orçamentos, organize negociações e acompanhe seus resultados.</p>
+    <div class="actions">
+      <button class="primary" onclick="ir('novo')">Cadastrar orçamento</button>
+      <button class="secondary" onclick="ir('orcamentos')">Ver orçamentos</button>
+      <button class="secondary" onclick="exportar()">Exportar CSV</button>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Orçamentos recentes</h2>
+    <div id="recentes"></div>
+  </div>
+  <div class="card">
+    <h2>Como recuperar uma venda</h2>
+    <p class="muted">Cadastre o orçamento, entre em contato com o cliente, registre o retorno e atualize o status.</p>
+  </div>
+</section>
+
+<section id="orcamentos" class="page hidden">
+  <div class="card">
+    <h2>Seus orçamentos</h2>
+    <input id="busca" placeholder="Pesquisar cliente, telefone ou serviço">
+    <select id="filtro">
+      <option value="">Todos os status</option>
+      <option value="Pendente">Pendente</option>
+      <option value="Aprovado">Aprovado</option>
+      <option value="Recuperado">Recuperado</option>
+      <option value="Perdido">Perdido</option>
+    </select>
+    <div id="lista"></div>
+    <div class="actions"><button class="secondary" onclick="exportar()">Exportar CSV</button></div>
+  </div>
+</section>
+
+<section id="novo" class="page hidden">
+  <div class="card">
+    <h2 id="titulo-form">Novo orçamento</h2>
+    <form id="form">
+      <input type="hidden" id="id">
+      <label for="cliente">Nome do cliente *</label>
+      <input id="cliente" required maxlength="100" placeholder="Nome do cliente">
+      <label for="telefone">WhatsApp com DDD</label>
+      <input id="telefone" inputmode="tel" maxlength="25" placeholder="Ex.: 41999999999">
+      <label for="servico">Produto ou serviço *</label>
+      <input id="servico" required maxlength="150" placeholder="Serviço solicitado">
+      <div class="grid">
+        <div>
+          <label for="preco">Valor em reais *</label>
+          <input id="preco" type="number" min="0" step="0.01" required placeholder="0,00">
+        </div>
+        <div>
+          <label for="status">Status</label>
+          <select id="status">
+            <option>Pendente</option>
+            <option>Aprovado</option>
+            <option>Recuperado</option>
+            <option>Perdido</option>
+          </select>
+        </div>
+      </div>
+      <label for="data">Data do orçamento *</label>
+      <input id="data" type="date" required>
+      <label for="observacoes">Observações</label>
+      <textarea id="observacoes" maxlength="1000" placeholder="Detalhes ou retorno combinado"></textarea>
+      <div class="actions">
+        <button class="primary" type="submit">Salvar orçamento</button>
+        <button class="secondary" type="button" onclick="limparForm();ir('orcamentos')">Cancelar</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<section id="planos" class="page hidden">
+  <div class="card">
+    <h2>Escolha sua assinatura</h2>
+    <p class="muted">Selecione um plano para abrir o respectivo link do Mercado Pago.</p>
+  </div>
+
+  <div class="card plan">
+    <h3>Plano Básico</h3>
+    <div class="plan-price">R$ 19,90 <span class="muted">/ mês</span></div>
+    <p class="muted">Para começar a organizar seus orçamentos.</p>
+    <a class="btn primary" style="width:100%" href="https://mpago.la/1gzHZgi" target="_blank" rel="noopener noreferrer">Assinar plano Básico</a>
+    <p class="pay-note">Você será direcionado ao Mercado Pago para verificar e concluir o pagamento.</p>
+  </div>
+
+  <div class="card plan">
+    <h3>Plano Médio</h3>
+    <div class="plan-price">R$ 39,90 <span class="muted">/ mês</span></div>
+    <p class="muted">Para negócios que acompanham mais clientes.</p>
+    <a class="btn primary" style="width:100%" href="https://mpago.la/2nAe1ew" target="_blank" rel="noopener noreferrer">Assinar plano Médio</a>
+    <p class="pay-note">Você será direcionado ao Mercado Pago para verificar e concluir o pagamento.</p>
+  </div>
+
+  <div class="card plan">
+    <h3>Plano Pro</h3>
+    <div class="plan-price">R$ 59,90 <span class="muted">/ mês</span></div>
+    <p class="muted">Para negócios que precisam de mais recursos.</p>
+    <a class="btn primary" style="width:100%" href="https://mpago.la/2eVmn4i" target="_blank" rel="noopener noreferrer">Assinar plano Pro</a>
+    <p class="pay-note">Você será direcionado ao Mercado Pago para verificar e concluir o pagamento.</p>
+  </div>
+
+  <div class="card">
+    <h3>Informação importante</h3>
+    <p class="muted">Os links levam ao Mercado Pago. A cobrança recorrente depende de como cada link foi configurado. Esta versão ainda não detecta pagamentos nem libera assinaturas automaticamente.</p>
+  </div>
+</section>
+
+<footer>RecuperaOrçamentos · Versão inicial</footer>
+</main>
+
+<script>
+"use strict";
+const CHAVE="recupera_orcamentos_v2";
+let dados=[];
+try{
+ const salvo=JSON.parse(localStorage.getItem(CHAVE)||"[]");
+ if(Array.isArray(salvo))dados=salvo;
+}catch(e){dados=[];}
+
+function dinheiro(n){
+ return Number(n||0).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+}
+function escapar(v){
+ return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function hoje(){
+ const d=new Date();
+ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function salvar(){
+ try{
+  localStorage.setItem(CHAVE,JSON.stringify(dados));
+  return true;
+ }catch(e){
+  alert("Não foi possível salvar neste navegador. Exporte seus dados e verifique o espaço disponível.");
+  return false;
+ }
+}
+function ir(p){
+ document.querySelectorAll(".page").forEach(el=>el.classList.add("hidden"));
+ document.getElementById(p).classList.remove("hidden");
+ document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===p));
+ renderizar();
+ window.scrollTo({top:0,behavior:"smooth"});
+}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>ir(b.dataset.page)));
+document.getElementById("busca").addEventListener("input",renderizar);
+document.getElementById("filtro").addEventListener("change",renderizar);
+
+function limparForm(){
+ document.getElementById("form").reset();
+ document.getElementById("id").value="";
+ document.getElementById("data").value=hoje();
+ document.getElementById("titulo-form").textContent="Novo orçamento";
+}
+function editar(id){
+ const x=dados.find(q=>q.id===id);
+ if(!x)return;
+ document.getElementById("id").value=x.id;
+ ["cliente","telefone","servico","preco","status","data","observacoes"].forEach(k=>{
+  document.getElementById(k).value=x[k]??"";
+ });
+ document.getElementById("titulo-form").textContent="Editar orçamento";
+ ir("novo");
+}
+document.getElementById("form").addEventListener("submit",e=>{
+ e.preventDefault();
+ const id=document.getElementById("id").value;
+ const anterior=dados.find(q=>q.id===id);
+ const x={
+  id:id||("orc-"+Date.now()+"-"+Math.random().toString(36).slice(2,7)),
+  cliente:document.getElementById("cliente").value.trim(),
+  telefone:document.getElementById("telefone").value.trim(),
+  servico:document.getElementById("servico").value.trim(),
+  preco:Number(document.getElementById("preco").value),
+  status:document.getElementById("status").value,
+  data:document.getElementById("data").value,
+  observacoes:document.getElementById("observacoes").value.trim(),
+  criado:anterior?.criado||new Date().toISOString()
+ };
+ if(!x.cliente||!x.servico||!x.data||!Number.isFinite(x.preco)||x.preco<0){
+  alert("Confira os campos obrigatórios.");
+  return;
+ }
+ const copia=dados.slice();
+ dados=id?dados.map(q=>q.id===id?x:q):[x,...dados];
+ if(!salvar()){dados=copia;return;}
+ limparForm();
+ alert("Orçamento salvo neste navegador.");
+ ir("orcamentos");
+});
+function excluir(id){
+ if(!confirm("Deseja excluir este orçamento?"))return;
+ const copia=dados.slice();
+ dados=dados.filter(q=>q.id!==id);
+ if(!salvar()){dados=copia;return;}
+ renderizar();
+}
+function whatsapp(id){
+ const x=dados.find(q=>q.id===id);
+ if(!x)return;
+ const numero=x.telefone.replace(/\D/g,"");
+ if(!numero){alert("Cadastre o WhatsApp do cliente primeiro.");return;}
+ const internacional=numero.startsWith("55")?numero:"55"+numero;
+ const texto=`Olá, ${x.cliente}! Tudo bem? Estou entrando em contato sobre o orçamento de ${x.servico}, no valor de ${dinheiro(x.preco)}. Você gostaria de conversar sobre ele?`;
+ window.open("https://wa.me/"+internacional+"?text="+encodeURIComponent(texto),"_blank","noopener,noreferrer");
+}
+function bloco(x){
+ const id=JSON.stringify(x.id);
+ return `<article class="quote">
+ <div class="quote-top"><div><h3>${escapar(x.cliente)}</h3><p>${escapar(x.servico)} · ${escapar(x.data)}</p></div><span class="tag ${escapar(x.status)}">${escapar(x.status)}</span></div>
+ <div class="amount">${dinheiro(x.preco)}</div>
+ ${x.telefone?`<p>WhatsApp: ${escapar(x.telefone)}</p>`:""}
+ ${x.observacoes?`<p>${escapar(x.observacoes)}</p>`:""}
+ <div class="actions">
+ <button class="secondary" onclick="editar(${id})">Editar</button>
+ <button class="success" onclick="whatsapp(${id})">WhatsApp</button>
+ <button class="danger" onclick="excluir(${id})">Excluir</button>
+ </div></article>`;
+}
+function renderizar(){
+ const aprovados=dados.filter(x=>x.status==="Aprovado"||x.status==="Recuperado");
+ document.getElementById("total").textContent=dados.length;
+ document.getElementById("pendentes").textContent=dados.filter(x=>x.status==="Pendente").length;
+ document.getElementById("aprovados").textContent=aprovados.length;
+ document.getElementById("valor").textContent=dinheiro(aprovados.reduce((s,x)=>s+x.preco,0));
+ document.getElementById("recentes").innerHTML=dados.length?dados.slice(0,3).map(bloco).join(""):'<div class="empty">Nenhum orçamento cadastrado.</div>';
+ const termo=(document.getElementById("busca")?.value||"").toLowerCase();
+ const filtro=document.getElementById("filtro")?.value||"";
+ const lista=dados.filter(x=>[x.cliente,x.telefone,x.servico,x.observacoes].join(" ").toLowerCase().includes(termo)&&(!filtro||x.status===filtro));
+ document.getElementById("lista").innerHTML=lista.length?lista.map(bloco).join(""):'<div class="empty">Nenhum orçamento encontrado.</div>';
+}
+function exportar(){
+ if(!dados.length){alert("Não há orçamentos para exportar.");return;}
+ const cols=["cliente","telefone","servico","preco","status","data","observacoes"];
+ const csv=[cols.join(";"),...dados.map(x=>cols.map(k=>'"'+String(x[k]??"").replace(/"/g,'""')+'"').join(";"))].join("\r\n");
+ const url=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv;charset=utf-8"}));
+ const a=document.createElement("a");
+ a.href=url;a.download="recupera-orcamentos.csv";a.click();
+ setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+document.getElementById("data").value=hoje();
+renderizar();
+</script>
+</body>
+                        </html>
+  
